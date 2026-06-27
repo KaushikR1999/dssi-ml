@@ -1,0 +1,10 @@
+{
+    "name": "iris_classifier",
+    "metrics": {
+        "accuracy": 0.97
+    },
+    "version": 1,
+    "registration_date": "2026-06-27T14:53:10.649491",
+    "model": "iris_classifier_model_v1.joblib",
+    "features": "iris_classifier_features_v1.joblib"
+}

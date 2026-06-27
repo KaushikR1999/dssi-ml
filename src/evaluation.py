@@ -1,67 +1,19 @@
 import logging
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 from src.config import appconfig
 from src import model_registry
 
 logging.basicConfig(level=logging.INFO)
 
-fdr_max = float(appconfig['Evaluation']['fdr'])
-recall_min = float(appconfig['Evaluation']['recall'])
+accuracy_min = float(appconfig['Evaluation']['accuracy'])
 _model_name = appconfig['Model']['name']
 
-def __get_classification_metrics(y_true, y_pred):
-    cm = confusion_matrix(y_true, y_pred)
-    TP = cm[1, 1]
-    TN = cm[0, 0]
-    FP = cm[0, 1]
-    FN = cm[1, 0]
-    return TP, TN, FP, FN
-
-def get_fdr(y_true, y_pred):
-    """
-    Calculate False Discovery Rate (FDR).
-        Parameters:
-            y_true (array-like): True labels
-            y_pred (array-like): Predicted labels
-        Returns:
-            float: FDR value
-    """
-    TP, TN, FP, FN = __get_classification_metrics(y_true, y_pred)
-    if (TP + FP) == 0:
-        return 0.0
-    return round((FP / (TP + FP)), 2)
-
-def get_recall(y_true, y_pred):
-    """
-    Calculate Recall.
-        Parameters:
-            y_true (array-like): True labels
-            y_pred (array-like): Predicted labels
-        Returns:
-            float: Recall value
-    """
-    TP, TN, FP, FN = __get_classification_metrics(y_true, y_pred)
-    if (TP + FN) == 0:
-        return 0.0
-    return round((TP / (TP + FN)), 2)
-
 def get_eval_metrics(y_true, y_pred):
-    """
-    Return model evaluation metrics.
-        Parameters:
-            y_true (array-like): True labels
-            y_pred (array-like): Predicted labels
-        Returns:
-            dict: Dictionary containing evaluation metrics
-    """
-    results = {
-        'fdr': get_fdr(y_true, y_pred),
-        'recall': get_recall(y_true, y_pred),
-    }
-    return results
+    """Return metrics suitable for the three-class Iris problem."""
+    return {'accuracy': round(accuracy_score(y_true, y_pred), 2)}
 
 def run(y_true, y_pred):
-    """ Main script to evaluate model performance based on FDR and Recall.
+    """Evaluate model accuracy against the configured and registered model.
         Parameters:
             y_true (array-like): True labels
             y_pred (array-like): Predicted labels
@@ -69,21 +21,22 @@ def run(y_true, y_pred):
             bool: True if evaluation passes, False otherwise
     """
     logging.info('Evaluating model...')
-    fdr = get_fdr(y_true, y_pred)
-    recall = get_recall(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred)
 
-    if fdr > fdr_max or recall < recall_min:
-        logging.warning(f"Model evaluation failed config thresholds: FDR={fdr:.2f} (max {fdr_max:.2f}), Recall={recall:.2f} (min {recall_min:.2f})")
+    if accuracy < accuracy_min:
+        logging.warning(
+            f"Model evaluation failed config threshold: "
+            f"accuracy={accuracy:.2f} (min {accuracy_min:.2f})"
+        )
         return False
 
     current_metadata = model_registry.get_metadata(_model_name)
     if current_metadata is not None:
         current_metrics = current_metadata['metrics']
-        if fdr > current_metrics['fdr'] or recall < current_metrics['recall']:
+        if accuracy < current_metrics['accuracy']:
             logging.warning(
                 f"Model evaluation failed vs current model v{current_metadata['version']}: "
-                f"FDR={fdr:.2f} vs {current_metrics['fdr']:.2f}, "
-                f"Recall={recall:.2f} vs {current_metrics['recall']:.2f}"
+                f"accuracy={accuracy:.2f} vs {current_metrics['accuracy']:.2f}"
             )
             return False
 

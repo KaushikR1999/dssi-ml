@@ -2,10 +2,8 @@
 This module encapsulates model inference.
 """
 
-from joblib import dump, load
 import pandas as pd
-import numpy as np
-from src.data_processor import preprocess
+from sklearn.datasets import load_iris
 from src.model_registry import retrieve
 from src.config import appconfig
 
@@ -18,7 +16,6 @@ def get_prediction(**kwargs):
             Predicted class in str
     """
     clf, features = retrieve(appconfig['Model']['name'])
-    pred_df = pd.DataFrame(kwargs, index=[0])
-    pred_df = preprocess(pred_df)
+    pred_df = pd.DataFrame([kwargs])
     pred = clf.predict(pred_df[features])
-    return pred[0]
+    return load_iris().target_names[pred[0]]
